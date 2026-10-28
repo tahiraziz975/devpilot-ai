@@ -34,3 +34,6 @@ target/
 datasets/raw/
 datasets/processed/
 ml/artifacts/
+# Dataset files
+datasets/raw/*
+datasets/processed/*
