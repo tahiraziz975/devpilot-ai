@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.joblib
+*.pkl
+*.model
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# Java
+target/
+.gradle/
+*.class
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Datasets and generated artifacts
+datasets/raw/
+datasets/processed/
+ml/artifacts/
+# Dataset files
+datasets/raw/*
+datasets/processed/*
