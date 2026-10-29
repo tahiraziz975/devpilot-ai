@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Activity, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, Sparkles, WandSparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, Save, Settings, Sparkles, UserPlus, UserRound, WandSparkles } from 'lucide-react';
+import LoginPage from './LoginPage.tsx';
 
 const initialTitle = 'Unable to log in to my account';
 const initialBody = 'When I click login with my username and password, it shows the same login page again.';
@@ -9,11 +10,45 @@ function formatLabel(label) {
 }
 
 function App() {
+  const [path, setPath] = useState(window.location.pathname);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [profile, setProfile] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('devpilot-profile')) || { name: 'Jamie Developer', email: 'jamie@devpilot.ai', profileId: 'jamie-dev-01' };
+    } catch {
+      return { name: 'Jamie Developer', email: 'jamie@devpilot.ai', profileId: 'jamie-dev-01' };
+    }
+  });
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [settings, setSettings] = useState({ emailUpdates: true, compactResults: false });
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState(initialBody);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const syncPath = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', syncPath);
+    return () => window.removeEventListener('popstate', syncPath);
+  }, []);
+
+  function navigate(nextPath) {
+    window.history.pushState({}, '', nextPath);
+    setPath(nextPath);
+    setAccountMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function saveProfile(event) {
+    event.preventDefault();
+    localStorage.setItem('devpilot-profile', JSON.stringify(profile));
+    setProfileSaved(true);
+    window.setTimeout(() => setProfileSaved(false), 2200);
+  }
+
+  const currentPage = path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
+  const authPage = path === '/signin' || path === '/signup';
 
   async function classifyIssue(event) {
     event.preventDefault();
@@ -48,9 +83,9 @@ function App() {
   const scorePercent = Math.round(bestScore * 100);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${settings.compactResults ? 'compact-results' : ''}`}>
       <aside className="sidebar">
-        <a className="brand" href="#home" aria-label="DevPilot AI home">
+        <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} aria-label="DevPilot AI home">
           <span className="brand-mark"><Command size={19} strokeWidth={2.6} /></span>
           <span>devpilot<span className="brand-ai">.ai</span></span>
         </a>
@@ -61,20 +96,51 @@ function App() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav className="side-nav" aria-label="Workspace">
-          <a href="#classify" className="nav-item active"><WandSparkles size={17} /> Classify issue <span className="nav-dot" /></a>
+          <a href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} className={`nav-item ${path === '/' ? 'active' : ''}`}><WandSparkles size={17} /> Classify issue {path === '/' && <span className="nav-dot" />}</a>
           <a href="#history" className="nav-item disabled" aria-disabled="true"><Layers3 size={17} /> History <span className="soon">SOON</span></a>
           <a href="#activity" className="nav-item disabled" aria-disabled="true"><Activity size={17} /> Activity <span className="soon">SOON</span></a>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-tip"><Sparkles size={16} /><p><strong>Better triage starts here.</strong><br />Give your team a head start on every issue.</p></div>
           <button className="help-link" type="button"><CircleHelp size={16} /> Help & feedback <ArrowUpRight size={14} /></button>
-          <div className="profile"><span className="profile-avatar">JD</span><span><strong>Jamie Developer</strong><small>jamie@devpilot.ai</small></span><ChevronDown size={15} /></div>
+          <div className="account-menu-wrap">
+            {accountMenuOpen && <><button className="menu-dismiss" aria-label="Close account menu" onClick={() => setAccountMenuOpen(false)} /><div className="account-menu" role="menu" aria-label="Account menu">
+              <div className="account-menu-heading"><span className="profile-avatar">{profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><span><strong>{profile.name}</strong><small>{profile.email}</small></span></div>
+              <div className="account-menu-divider" />
+              <button type="button" role="menuitem" onClick={() => navigate('/profile')}><UserRound size={15} /> Profile</button>
+              <button type="button" role="menuitem" onClick={() => navigate('/settings')}><Settings size={15} /> Settings</button>
+              <div className="account-menu-divider" />
+              <button type="button" role="menuitem" onClick={() => navigate('/signin')}><LogIn size={15} /> Sign in</button>
+              <button type="button" role="menuitem" onClick={() => navigate('/signup')}><UserPlus size={15} /> Sign up</button>
+            </div></>}
+            <button className="profile" type="button" aria-haspopup="menu" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}><span className="profile-avatar">{profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><span><strong>{profile.name}</strong><small>{profile.email}</small></span><ChevronDown size={15} /></button>
+          </div>
         </div>
       </aside>
 
       <main className="main-content" id="home">
-        <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>Classify issue</strong></div><div className="topbar-right"><span className="system-status"><i /> All systems operational</span><button className="icon-button" aria-label="Help"><CircleHelp size={18} /></button><span className="mini-avatar">JD</span></div></header>
-        <div className="content-wrap" id="classify">
+        <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>{currentPage}</strong></div><div className="topbar-right"><span className="system-status"><i /> All systems operational</span><button className="icon-button" aria-label="Help"><CircleHelp size={18} /></button><button className="topbar-account" type="button" aria-label="Open account menu" onClick={() => setAccountMenuOpen((open) => !open)}><span className="mini-avatar">{profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span></button></div></header>
+        {path === '/profile' ? <div className="content-wrap account-content">
+          <button className="back-link" type="button" onClick={() => navigate('/')}><ArrowLeft size={15} /> Back to workspace</button>
+          <div className="page-heading account-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><UserRound size={14} /></span> ACCOUNT</div><h1>Your profile</h1><p className="subtitle">Manage the details associated with your DevPilot account.</p></div></div>
+          <section className="panel account-panel"><div className="panel-heading"><div className="step-icon"><UserRound size={17} /></div><div><h2>Personal details</h2><p>Update how your profile appears in DevPilot.</p></div></div>
+            <form className="account-form" onSubmit={saveProfile}>
+              <div className="profile-hero"><span className="large-profile-avatar">{profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><div><strong>{profile.name || 'Your name'}</strong><span>DevPilot account</span></div></div>
+              <label className="account-field">Full name<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} required maxLength={80} /></label>
+              <label className="account-field">Email address<input type="email" value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} required maxLength={120} /></label>
+              <label className="account-field">Profile ID<input value={profile.profileId} onChange={(event) => setProfile({ ...profile, profileId: event.target.value })} required maxLength={40} /><small>Your unique profile identifier.</small></label>
+              <div className="account-actions"><span className="save-confirmation" aria-live="polite">{profileSaved ? 'Profile saved on this device.' : ''}</span><button className="submit-button save-button" type="submit"><Save size={15} /> Save changes</button></div>
+            </form>
+          </section>
+        </div> : path === '/settings' ? <div className="content-wrap account-content">
+          <button className="back-link" type="button" onClick={() => navigate('/')}><ArrowLeft size={15} /> Back to workspace</button>
+          <div className="page-heading account-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><Settings size={14} /></span> PREFERENCES</div><h1>Settings</h1><p className="subtitle">Choose how DevPilot works for you.</p></div></div>
+          <section className="panel account-panel settings-panel"><div className="panel-heading"><div className="step-icon"><Settings size={17} /></div><div><h2>Workspace preferences</h2><p>These preferences are saved for this session.</p></div></div>
+            <label className="setting-row"><span><strong>Email updates</strong><small>Receive product and workspace update emails.</small></span><input type="checkbox" checked={settings.emailUpdates} onChange={(event) => setSettings({ ...settings, emailUpdates: event.target.checked })} /></label>
+            <label className="setting-row"><span><strong>Compact results</strong><small>Use a denser layout for classification results.</small></span><input type="checkbox" checked={settings.compactResults} onChange={(event) => setSettings({ ...settings, compactResults: event.target.checked })} /></label>
+            <div className="settings-note"><Sparkles size={15} /> More account and notification settings will be available as the workspace grows.</div>
+          </section>
+        </div> : authPage ? <LoginPage path={path} navigate={navigate} /> : <div className="content-wrap" id="classify">
           <div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><Sparkles size={14} /></span> AI ISSUE TRIAGE</div><h1>Make sense of every issue.</h1><p className="subtitle">Turn a bug report into a clear starting point for your team.</p></div><div className="model-chip"><span className="model-pulse" /> CLASSIFIER <span className="chip-divider" /> v1.0</div></div>
 
           <div className="work-grid">
@@ -98,7 +164,7 @@ function App() {
             </section>
           </div>
           <footer className="page-footer"><span>DEVpilot AI <span className="footer-dot">·</span> ISSUE CLASSIFICATION</span><span>Built for clearer triage <span className="footer-heart">✳</span></span></footer>
-        </div>
+        </div>}
       </main>
     </div>
   );
