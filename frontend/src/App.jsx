@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Activity, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, Save, Settings, Sparkles, UserPlus, UserRound, WandSparkles } from 'lucide-react';
-import LoginPage from './LoginPage.tsx';
+import LoginPage from "./loginPage.jsx";
 
 const initialTitle = 'Unable to log in to my account';
 const initialBody = 'When I click login with my username and password, it shows the same login page again.';
