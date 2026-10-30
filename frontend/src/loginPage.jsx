@@ -3,15 +3,9 @@ import {
   ArrowLeft,
   Command,
   ShieldCheck,
-  type
 } from 'lucide-react';
 
-type LoginPageProps = {
-  path: string;
-  navigate: (nextPath: string) => void;
-};
-
-export default function LoginPage({ path, navigate }: LoginPageProps) {
+export default function LoginPage({ path, navigate }) {
   const [message, setMessage] = useState('');
   const isSignIn = path === '/signin';
 
