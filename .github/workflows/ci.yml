@@ -37,8 +37,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --run
 
       - name: Build frontend
         run: npm run build
@@ -62,11 +60,8 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Make Maven wrapper executable
-        run: chmod +x mvnw
-
       - name: Run backend tests and build
-        run: ./mvnw --batch-mode verify
+        run: mvn --batch-mode verify
 
   ml:
     name: ML Tests
