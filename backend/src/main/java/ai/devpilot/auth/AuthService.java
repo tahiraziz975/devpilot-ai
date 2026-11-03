@@ -67,6 +67,14 @@ public class AuthService {
         return toResponse(user);
     }
 
+    @Transactional(readOnly = true)
+    public AuthResponse findById(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED, "User account no longer exists"));
+        return toResponse(user);
+    }
+
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
