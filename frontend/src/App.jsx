@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, LogOut, Save, Settings, Sparkles, UserRound, WandSparkles } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, LogOut, Moon, Save, Settings, Sparkles, Sun, UserRound, WandSparkles } from 'lucide-react';
 import LoginPage from "./loginPage.jsx";
 import HistoryPage from './HistoryPage.jsx';
 
@@ -23,6 +23,8 @@ function App() {
   });
   const [profileSaved, setProfileSaved] = useState(false);
   const [settings, setSettings] = useState({ emailUpdates: true, compactResults: false });
+  const [theme, setTheme] = useState(() => localStorage.getItem('devpilot-theme') === 'light' ? 'light' : 'dark');
+  const [themeSaveError, setThemeSaveError] = useState('');
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState(initialBody);
   const [result, setResult] = useState(null);
@@ -47,6 +49,20 @@ function App() {
       .catch(() => {});
     return () => window.removeEventListener('popstate', syncPath);
   }, []);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    fetch('/api/settings', { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const savedSettings = await response.json();
+        const savedTheme = savedSettings.theme === 'light' ? 'light' : 'dark';
+        setTheme(savedTheme);
+        localStorage.setItem('devpilot-theme', savedTheme);
+        setSettings((current) => ({ ...current, emailUpdates: Boolean(savedSettings.emailNotifications) }));
+      })
+      .catch(() => {});
+  }, [authUser?.id]);
 
   function navigate(nextPath) {
     window.history.pushState({}, '', nextPath);
@@ -83,6 +99,30 @@ function App() {
         navigate('/');
       })
       .catch((signoutError) => setAccountError(signoutError.message || 'Could not sign out.'));
+  }
+
+  async function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('devpilot-theme', nextTheme);
+    setThemeSaveError('');
+    if (!authUser) return;
+
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: nextTheme }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || 'Could not save your theme preference.');
+      const savedTheme = payload.theme === 'light' ? 'light' : 'dark';
+      setTheme(savedTheme);
+      localStorage.setItem('devpilot-theme', savedTheme);
+    } catch {
+      setThemeSaveError('Theme changed for now, but your preference could not be saved to your account.');
+    }
   }
 
   const displayName = authUser?.fullName || 'Guest';
@@ -126,7 +166,7 @@ function App() {
   const scorePercent = Math.round(bestScore * 100);
 
   return (
-    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${settings.compactResults ? 'compact-results' : ''}`}>
+    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${settings.compactResults ? 'compact-results' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
       <aside className="sidebar">
         <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} aria-label="DevPilot AI home">
           <span className="brand-mark"><Command size={19} strokeWidth={2.6} /></span>
@@ -164,7 +204,7 @@ function App() {
       </aside>
 
       <main className="main-content" id="home">
-        <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>{currentPage}</strong></div><div className="topbar-right"><span className="system-status"><i /> All systems operational</span><button className="icon-button" aria-label="Help"><CircleHelp size={18} /></button><button className="topbar-account" type="button" aria-label="Open account menu" onClick={() => setAccountMenuOpen((open) => !open)}><span className="mini-avatar">{initials}</span></button></div></header>
+        <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>{currentPage}</strong></div><div className="topbar-right"><span className="system-status"><i /> All systems operational</span><button className={`theme-switch ${theme}`} type="button" role="switch" aria-checked={theme === 'light'} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={themeSaveError || `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={toggleTheme}><span className="theme-switch-icon"><Sun size={16} /></span><span className="theme-switch-track"><span className="theme-switch-thumb" /></span><span className="theme-switch-icon"><Moon size={15} /></span></button><button className="icon-button" aria-label="Help"><CircleHelp size={18} /></button><button className="topbar-account" type="button" aria-label="Open account menu" onClick={() => setAccountMenuOpen((open) => !open)}><span className="mini-avatar">{initials}</span></button></div></header>
         {path === '/history' ? <HistoryPage navigate={navigate} /> : path === '/profile' && !authUser ? <LoginPage path="/signin" navigate={navigate} onAuthenticated={handleAuthenticated} /> : path === '/profile' ? <div className="content-wrap account-content">
           <button className="back-link" type="button" onClick={() => navigate('/')}><ArrowLeft size={15} /> Back to workspace</button>
           <div className="page-heading account-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><UserRound size={14} /></span> ACCOUNT</div><h1>Your profile</h1><p className="subtitle">Manage the details associated with your DevPilot account.</p></div></div>
