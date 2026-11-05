@@ -1560,11 +1560,32 @@ button {
   color: #6e7488;
 }
 
+.light-theme .mobile-tab-bar {
+  border-color: #e1e4ef;
+  background: #ffffffd9;
+  box-shadow: 0 9px 25px #27304a22, inset 0 1px #fff;
+}
+
+.light-theme .mobile-tab {
+  color: #73798c;
+}
+
+.light-theme .mobile-tab.active {
+  border-color: #e2dcf6;
+  background: linear-gradient(145deg, #f8f6ff, #ece8fb);
+  color: #624eac;
+  box-shadow: 0 3px 8px #55448520, inset 0 1px #fff;
+}
+
 .light-theme .account-menu-error {
   color: #a2494e;
 }
 
 /* Workspace header and page hierarchy */
+.mobile-tab-bar {
+  display: none;
+}
+
 .main-content {
   margin-left: 232px;
   min-height: 100vh;
@@ -2425,6 +2446,53 @@ button {
 
   .main-content {
     margin: 0;
+  }
+
+  .mobile-tab-bar {
+    position: fixed;
+    z-index: 4;
+    right: 14px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 7px;
+    border: 1px solid #343544;
+    border-radius: 17px;
+    background: #14151ee8;
+    box-shadow: 0 10px 28px #0007, inset 0 1px #ffffff12;
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-tab {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: #9699aa;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform .2s, background .25s, color .25s, box-shadow .25s;
+  }
+
+  .mobile-tab:active {
+    transform: scale(.97);
+  }
+
+  .mobile-tab.active {
+    border-color: #483a68;
+    background: linear-gradient(145deg, #302743, #211d2e);
+    color: #d1c2ff;
+    box-shadow: 0 3px 8px #0005, inset 0 1px #ffffff16;
+  }
+
+  .app-shell:not(.is-auth) .content-wrap {
+    padding-bottom: 104px;
   }
 
   .topbar {
