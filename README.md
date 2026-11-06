@@ -55,6 +55,19 @@ Set `DEVPILOT_MODEL_PATH` to use the paired artifact at another path.
 
 ## Run the Spring Boot backend
 
+The backend also provides a signed-in chat endpoint at `POST /api/chat`. It uses Groq's OpenAI-compatible Chat Completions API. Keep the Groq API key in the backend environment; never put it in frontend code:
+
+```bash
+export GROQ_API_KEY=your-groq-api-key
+export GROQ_MODEL=openai/gpt-oss-20b
+cd backend
+mvn spring-boot:run
+```
+
+The default model can be changed with `GROQ_MODEL`, and the API base URL with `GROQ_BASE_URL`. The free tier has rate limits; the chat request sends no repository content and exposes no tools that can change files or GitHub repositories.
+
+Send `{ "message": "Explain this code..." }` to `/api/chat` with the signed-in session cookie.
+
 The backend exposes `POST /api/predictions` and forwards the title and body to
 the Python API at `/predict`. Start the Python API as described above, then in
 a second terminal run (Java 17 and Maven required):
