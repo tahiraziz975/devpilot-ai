@@ -67,6 +67,23 @@ public class AuthService {
         return toResponse(user);
     }
 
+    @Transactional
+    public AuthResponse authenticateGoogle(String email, String fullName) {
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail).orElseGet(() -> {
+            User newUser = new User();
+            newUser.setFullName(fullName == null || fullName.isBlank()
+                ? normalizedEmail.substring(0, normalizedEmail.indexOf('@'))
+                : fullName.trim());
+            newUser.setEmail(normalizedEmail);
+            newUser.setProfileId("dp_" + UUID.randomUUID());
+            // OAuth accounts do not use a local password, but the existing schema requires a value.
+            newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+            return userRepository.save(newUser);
+        });
+        return toResponse(user);
+    }
+
     @Transactional(readOnly = true)
     public AuthResponse findById(Long id) {
         User user = userRepository.findById(id)

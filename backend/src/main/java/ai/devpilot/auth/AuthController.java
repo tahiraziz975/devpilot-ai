@@ -10,15 +10,26 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final boolean googleOAuthEnabled;
 
-    public AuthController(AuthService authService) {
+    public AuthController(
+            AuthService authService,
+            @Value("${devpilot.oauth.google.enabled:false}") boolean googleOAuthEnabled) {
         this.authService = authService;
+        this.googleOAuthEnabled = googleOAuthEnabled;
+    }
+
+    @GetMapping("/providers")
+    public Map<String, Boolean> providers() {
+        return Map.of("google", googleOAuthEnabled);
     }
 
     @PostMapping("/signup")
