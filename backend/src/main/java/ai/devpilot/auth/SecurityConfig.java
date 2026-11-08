@@ -7,6 +7,7 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Configuration
 public class SecurityConfig {
@@ -17,6 +18,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "devpilot.oauth.google.enabled", havingValue = "false", matchIfMissing = true)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
