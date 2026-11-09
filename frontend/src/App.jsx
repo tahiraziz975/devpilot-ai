@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, LogOut, MessageSquareText, Moon, Save, Settings, Sparkles, Sun, UserRound, WandSparkles } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, Bot, Check, ChevronDown, CircleHelp, Command, FileText, Layers3, LoaderCircle, LogIn, LogOut, MessageSquareText, Moon, Save, Settings, Sparkles, Sun, UserRound, WandSparkles } from 'lucide-react';
 import LoginPage from "./loginPage.jsx";
 import HistoryPage from './HistoryPage.jsx';
 import ChatSideDrawer from './chatSideDrawer.jsx';
@@ -48,7 +48,7 @@ function App() {
         setAuthUser(user);
         localStorage.setItem('devpilot-auth-user', JSON.stringify(user));
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => window.removeEventListener('popstate', syncPath);
   }, []);
 
@@ -63,7 +63,7 @@ function App() {
         localStorage.setItem('devpilot-theme', savedTheme);
         setSettings((current) => ({ ...current, emailUpdates: Boolean(savedSettings.emailNotifications) }));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [authUser?.id]);
 
   function navigate(nextPath) {
@@ -131,7 +131,7 @@ function App() {
   const displayEmail = authUser?.email || 'Sign in to your account';
   const initials = authUser?.fullName?.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'G';
 
-  const currentPage = path === '/history' ? 'History' : path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
+  const currentPage = path === '/assistant' ? 'AI Assistant' : path === '/history' ? 'History' : path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
   const authPage = path === '/signin' || path === '/signup' || (path === '/profile' && !authUser);
 
   async function classifyIssue(event) {
@@ -168,7 +168,7 @@ function App() {
   const scorePercent = Math.round(bestScore * 100);
 
   return (
-    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${settings.compactResults ? 'compact-results' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
+    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${path === '/assistant' ? 'is-assistant' : ''} ${settings.compactResults ? 'compact-results' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
       <aside className="sidebar">
         <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} aria-label="DevPilot AI home">
           <span className="brand-mark"><Command size={19} strokeWidth={2.6} /></span>
@@ -181,6 +181,7 @@ function App() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav className="side-nav" aria-label="Workspace">
+          <a href="/assistant" onClick={(event) => { event.preventDefault(); navigate('/assistant'); }} className={`nav-item ${path === '/assistant' ? 'active' : ''}`} aria-current={path === '/assistant' ? 'page' : undefined}><Bot size={17} /> AI Assistant {path === '/assistant' && <span className="nav-dot" />}</a>
           <a href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} className={`nav-item ${path === '/' ? 'active' : ''}`}><WandSparkles size={17} /> Classify issue {path === '/' && <span className="nav-dot" />}</a>
           <a href="/history" onClick={(event) => { event.preventDefault(); navigate('/history'); }} className={`nav-item ${path === '/history' ? 'active' : ''}`}><Layers3 size={17} /> History {path === '/history' && <span className="nav-dot" />}</a>
           <a href="#activity" className="nav-item disabled" aria-disabled="true"><Activity size={17} /> Activity <span className="soon">SOON</span></a>
@@ -191,10 +192,10 @@ function App() {
           <div className="account-menu-wrap">
             {accountMenuOpen && <><button className="menu-dismiss" aria-label="Close account menu" onClick={() => setAccountMenuOpen(false)} /><div className="account-menu" role="menu" aria-label="Account menu">
               {authUser && <><div className="account-menu-heading"><span className="profile-avatar">{initials}</span><span><strong>{displayName}</strong><small>{displayEmail}</small></span></div>
-              <div className="account-menu-divider" />
-              <button type="button" role="menuitem" onClick={() => navigate('/profile')}><UserRound size={15} /> Profile</button>
-              <button type="button" role="menuitem" onClick={() => navigate('/settings')}><Settings size={15} /> Settings</button>
-              <div className="account-menu-divider" /></>}
+                <div className="account-menu-divider" />
+                <button type="button" role="menuitem" onClick={() => navigate('/profile')}><UserRound size={15} /> Profile</button>
+                <button type="button" role="menuitem" onClick={() => navigate('/settings')}><Settings size={15} /> Settings</button>
+                <div className="account-menu-divider" /></>}
               {authUser
                 ? <button type="button" role="menuitem" onClick={handleSignOut}><LogOut size={15} /> Sign out</button>
                 : <button type="button" role="menuitem" onClick={() => navigate('/signin')}><LogIn size={15} /> Sign in</button>}
@@ -208,10 +209,16 @@ function App() {
       <main className="main-content" id="home">
         <header className="topbar"><div className="breadcrumbs"><span>Workspace</span><span className="crumb-separator">/</span><strong>{currentPage}</strong></div><div className="topbar-right"><span className="system-status"><i /> All systems operational</span><button className={`theme-switch ${theme}`} type="button" role="switch" aria-checked={theme === 'light'} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={themeSaveError || `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={toggleTheme}><span className="theme-switch-icon"><Sun size={16} /></span><span className="theme-switch-track"><span className="theme-switch-thumb" /></span><span className="theme-switch-icon"><Moon size={15} /></span></button><button className="icon-button" aria-label="Help"><CircleHelp size={18} /></button><button className="topbar-account" type="button" aria-label="Open account menu" onClick={() => setAccountMenuOpen((open) => !open)}><span className="mini-avatar">{initials}</span></button></div></header>
         {!authPage && <nav className="mobile-tab-bar" aria-label="Primary navigation">
+          <a href="/assistant" aria-current={path === '/assistant' ? 'page' : undefined} className={`mobile-tab ${path === '/assistant' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/assistant'); }}><Bot size={18} /><span>Assistant</span></a>
           <a href="/" aria-current={path === '/' ? 'page' : undefined} className={`mobile-tab ${path === '/' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/'); }}><WandSparkles size={18} /><span>Classify</span></a>
           <a href="/history" aria-current={path === '/history' ? 'page' : undefined} className={`mobile-tab ${path === '/history' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/history'); }}><Layers3 size={18} /><span>History</span></a>
         </nav>}
-        {path === '/history' ? <HistoryPage navigate={navigate} /> : path === '/profile' && !authUser ? <LoginPage path="/signin" navigate={navigate} onAuthenticated={handleAuthenticated} /> : path === '/profile' ? <div className="content-wrap account-content">
+        {path === '/assistant' ? authUser ? <div className="assistant-page-wrap">
+          <div className="assistant-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><Bot size={14} /></span> DEVpilot AI</div><h1>AI Assistant</h1><p className="subtitle">Ask questions, explore ideas, and get help with your development work.</p></div></div>
+          <ChatSideDrawer open fullScreen onClose={() => navigate('/')} />
+        </div> : <div className="content-wrap assistant-access-content">
+          <section className="panel assistant-auth-gate"><div className="step-icon"><Bot size={18} /></div><div><h1>Sign in to use AI Assistant</h1><p className="subtitle">Your assistant is available after you sign in to DevPilot.</p></div><button type="button" className="submit-button" onClick={() => navigate('/signin')}>Sign in <ArrowRight size={16} /></button></section>
+        </div> : path === '/history' ? <HistoryPage navigate={navigate} /> : path === '/profile' && !authUser ? <LoginPage path="/signin" navigate={navigate} onAuthenticated={handleAuthenticated} /> : path === '/profile' ? <div className="content-wrap account-content">
           <button className="back-link" type="button" onClick={() => navigate('/')}><ArrowLeft size={15} /> Back to workspace</button>
           <div className="page-heading account-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><UserRound size={14} /></span> ACCOUNT</div><h1>Your profile</h1><p className="subtitle">Manage the details associated with your DevPilot account.</p></div></div>
           <section className="panel account-panel"><div className="panel-heading"><div className="step-icon"><UserRound size={17} /></div><div><h2>Personal details</h2><p>Update how your profile appears in DevPilot.</p></div></div>
