@@ -24,7 +24,7 @@ public class ChatController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sign in to use DevPilot chat");
         }
         try {
-            return chatService.reply(request);
+            return chatService.reply(request, servletRequest);
         } catch (GroqConfigurationException exception) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Groq is not configured; set GROQ_API_KEY on the backend", exception);
