@@ -32,6 +32,7 @@ public class SecurityConfig {
                     "/api/chat",
                     "/api/chat/**",
                     "/api/settings/**",
+                    "/api/integrations/github/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**"
