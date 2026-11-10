@@ -54,7 +54,7 @@ public class GoogleOAuthSecurityConfig {
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers(
                     "/api/auth/**", "/api/predictions/**", "/api/chat", "/api/chat/**",
-                    "/api/settings/**", "/oauth2/**", "/login/oauth2/**",
+                    "/api/settings/**", "/api/integrations/github/**", "/oauth2/**", "/login/oauth2/**",
                     "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
                 .permitAll()
                 .anyRequest().authenticated())
