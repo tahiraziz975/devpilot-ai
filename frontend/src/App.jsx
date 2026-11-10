@@ -3,6 +3,7 @@ import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, Bot, Check, ChevronDown,
 import LoginPage from "./loginPage.jsx";
 import HistoryPage from './HistoryPage.jsx';
 import ChatSideDrawer from './chatSideDrawer.jsx';
+import GitHubIntegrationCard from './components/integrations/GitHubIntegrationCard.jsx';
 
 const initialTitle = 'Unable to log in to my account';
 const initialBody = 'When I click login with my username and password, it shows the same login page again.';
@@ -131,6 +132,19 @@ function App() {
   const displayEmail = authUser?.email || 'Sign in to your account';
   const initials = authUser?.fullName?.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'G';
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const callback = params.get('github');
+    if (!callback) return;
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'devpilot-github-callback', result: callback }, window.location.origin);
+      window.close();
+      return;
+    }
+    // The backend callback can also be opened directly; preserve that result in the main tab.
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, []);
+
   const currentPage = path === '/assistant' ? 'AI Assistant' : path === '/history' ? 'History' : path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
   const authPage = path === '/signin' || path === '/signup' || (path === '/profile' && !authUser);
 
@@ -238,6 +252,8 @@ function App() {
             <label className="setting-row"><span><strong>Compact results</strong><small>Use a denser layout for classification results.</small></span><input type="checkbox" checked={settings.compactResults} onChange={(event) => setSettings({ ...settings, compactResults: event.target.checked })} /></label>
             <div className="settings-note"><Sparkles size={15} /> More account and notification settings will be available as the workspace grows.</div>
           </section>
+          <div className="settings-section-heading"><div><span className="eyebrow">INTEGRATIONS</span><h2>Connect your tools</h2><p>Manage the services DevPilot can use with your workspace.</p></div></div>
+          <GitHubIntegrationCard onSignIn={() => navigate('/signin')} />
         </div> : authPage ? <LoginPage path={path} navigate={navigate} onAuthenticated={handleAuthenticated} /> : <div className="content-wrap" id="classify">
           <div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><Sparkles size={14} /></span> AI ISSUE TRIAGE</div><h1>Make sense of every issue.</h1><p className="subtitle">Turn a bug report into a clear starting point for your team.</p></div><div className="model-chip"><span className="model-pulse" /> CLASSIFIER <span className="chip-divider" /> v1.0</div></div>
 
