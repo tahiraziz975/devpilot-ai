@@ -19,14 +19,15 @@ public class GitHubIntegrationService {
     static final String STATE_CREATED = "devpilotGithubInstallStateCreated";
     private final GitHubAppClient github;
     private final GitHubIntegrationRepository integrations;
+    private final GitHubRepositoryAccessRepository repositoryAccess;
     private final String appSlug;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
 
     public GitHubIntegrationService(GitHubAppClient github, GitHubIntegrationRepository integrations,
-            @Value("${devpilot.github.app-slug:}") String appSlug,
+            GitHubRepositoryAccessRepository repositoryAccess, @Value("${devpilot.github.app-slug:}") String appSlug,
             @Value("${devpilot.oauth.frontend-url:http://localhost:5173}") String frontendUrl) {
-        this.github = github; this.integrations = integrations; this.appSlug = appSlug;
+        this.github = github; this.integrations = integrations; this.repositoryAccess = repositoryAccess; this.appSlug = appSlug;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
     }
 
@@ -90,6 +91,7 @@ public class GitHubIntegrationService {
         Long userId = authenticatedUser(request);
         requireTrustedOrigin(request);
         integrations.findByUserId(userId).ifPresent(integrations::delete);
+        repositoryAccess.deleteByUserId(userId);
     }
 
     private void requireTrustedOrigin(HttpServletRequest request) {

@@ -8,6 +8,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -44,6 +45,98 @@ public class GitHubAppClient {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "GitHub installation could not be verified");
         }
     }
+
+    public String createInstallationToken(long installationId) {
+        if (appId.isBlank() || privateKey.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GitHub integration is not configured");
+        }
+        try {
+            Token token = client.post().uri("/app/installations/{id}/access_tokens", installationId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + appJwt())
+                .header(HttpHeaders.ACCEPT, "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("permissions", Map.of("metadata", "read", "contents", "read")))
+                .retrieve().body(Token.class);
+            if (token == null || token.token() == null || token.token().isBlank())
+                throw new IllegalStateException("GitHub did not return an installation token");
+            return token.token();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not create a read-only GitHub installation token");
+        }
+    }
+
+    public List<Repository> listInstallationRepositories(String token) {
+        try {
+            var result = new java.util.ArrayList<Repository>();
+            int page = 1;
+            while (page <= 20) {
+                final int currentPage = page;
+                RepositoryPage response = client.get().uri(uri -> uri.path("/installation/repositories")
+                        .queryParam("per_page", 100).queryParam("page", currentPage).build())
+                    .headers(headers -> installationHeaders(headers, token)).retrieve().body(RepositoryPage.class);
+                if (response == null || response.repositories() == null || response.repositories().isEmpty()) break;
+                result.addAll(response.repositories());
+                if (result.size() >= response.totalCount() || response.repositories().size() < 100) break;
+                page++;
+            }
+            return List.copyOf(result);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not load repositories from GitHub");
+        }
+    }
+
+    public List<TreeEntry> listRepositoryFiles(String token, String fullName, String branch, String directory) {
+        try {
+            String[] repository = fullName.split("/", 2);
+            if (repository.length != 2) throw new IllegalArgumentException("Invalid repository name");
+            Tree tree = client.get().uri(uri -> uri.pathSegment("repos", repository[0], repository[1], "git", "trees", branch)
+                    .queryParam("recursive", "1").build())
+                .headers(headers -> installationHeaders(headers, token)).retrieve().body(Tree.class);
+            if (tree == null || tree.entries() == null) return List.of();
+            String prefix = directory == null || directory.isBlank() ? "" : directory.replaceAll("/+$", "") + "/";
+            return tree.entries().stream().filter(entry -> ("blob".equals(entry.type()) || "tree".equals(entry.type())) && entry.path().startsWith(prefix))
+                .filter(entry -> entry.path().substring(prefix.length()).indexOf('/') < 0)
+                .limit(200).toList();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not list files from GitHub");
+        }
+    }
+
+    public String readRepositoryFile(String token, String fullName, String path, String branch) {
+        try {
+            String[] repository = fullName.split("/", 2);
+            if (repository.length != 2) throw new IllegalArgumentException("Invalid repository name");
+            ContentFile file = client.get().uri(uri -> uri.pathSegment("repos", repository[0], repository[1], "contents")
+                    .path("/" + path).queryParam("ref", branch).build())
+                .headers(headers -> installationHeaders(headers, token)).retrieve().body(ContentFile.class);
+            if (file == null || file.content() == null || !"base64".equals(file.encoding()))
+                throw new IllegalArgumentException("Unsupported GitHub file response");
+            byte[] decoded = Base64.getMimeDecoder().decode(file.content());
+            if (decoded.length > 40_000) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Repository file is too large to include in chat");
+            return new String(decoded, StandardCharsets.UTF_8);
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not read the requested file from GitHub");
+        }
+    }
+
+    private void installationHeaders(HttpHeaders headers, String token) {
+        headers.setBearerAuth(token);
+        headers.setAccept(List.of(MediaType.valueOf("application/vnd.github+json")));
+        headers.set("X-GitHub-Api-Version", "2022-11-28");
+    }
+
+    public record Token(String token) {}
+    public record RepositoryPage(@JsonProperty("total_count") int totalCount,
+            @JsonProperty("repositories") List<Repository> repositories) {}
+    public record Repository(Long id, String name, @JsonProperty("full_name") String fullName,
+            @JsonProperty("private") boolean privateRepository, @JsonProperty("default_branch") String defaultBranch,
+            Map<String, String> permissions) {}
+    public record Tree(@JsonProperty("tree") List<TreeEntry> entries) {}
+    public record TreeEntry(String path, String type, long size) {}
+    public record ContentFile(String content, String encoding) {}
 
     private String appJwt() throws Exception {
         long now = Instant.now().getEpochSecond();

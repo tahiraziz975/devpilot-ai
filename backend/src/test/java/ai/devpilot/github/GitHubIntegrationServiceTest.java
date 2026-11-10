@@ -12,7 +12,8 @@ import org.springframework.web.server.ResponseStatusException;
 class GitHubIntegrationServiceTest {
     private final GitHubAppClient github = mock(GitHubAppClient.class);
     private final GitHubIntegrationRepository repository = mock(GitHubIntegrationRepository.class);
-    private final GitHubIntegrationService service = new GitHubIntegrationService(github, repository, "devpilot-ai", "http://localhost:5173");
+    private final GitHubRepositoryAccessRepository repositoryAccess = mock(GitHubRepositoryAccessRepository.class);
+    private final GitHubIntegrationService service = new GitHubIntegrationService(github, repository, repositoryAccess, "devpilot-ai", "http://localhost:5173");
 
     @Test void unauthenticatedConnectIsRejected() {
         assertEquals(401, assertThrows(ResponseStatusException.class,
