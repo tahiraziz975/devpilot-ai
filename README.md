@@ -85,6 +85,47 @@ backend. For example:
 DEVPILOT_ML_BASE_URL=http://localhost:8000 mvn spring-boot:run
 ```
 
+## Configure the GitHub App integration
+
+Create a GitHub App in **Settings → Developer settings → GitHub Apps**. Grant
+only **Metadata: Read-only** and **Contents: Read-only** repository permissions;
+do not enable write permissions. Set its Setup URL to
+`https://<your-backend-host>/api/integrations/github/callback` (use the local
+backend URL while developing), then install the app on the intended account or
+organization. The callback validates a one-time session state and verifies the
+installation against GitHub with a short-lived, server-generated App JWT before
+storing its account and installation identifiers. The callback does not persist
+GitHub tokens; repository APIs mint short-lived read-only installation tokens
+when needed and keep them only in backend memory.
+
+Provide these values to the backend process through your deployment secret
+store or local untracked environment, never through frontend build variables:
+
+```bash
+export GITHUB_APP_ID='<App ID>'
+export GITHUB_APP_SLUG='<app-slug>'
+export GITHUB_APP_PRIVATE_KEY="$(cat /secure/path/devpilot-app.private-key.pem)"
+```
+
+The key may be a GitHub-generated RSA private key; the backend accepts the PEM
+with literal newlines or `\\n` sequences. Keep the key file outside the source
+tree. The signed-in browser starts setup with `POST /api/integrations/github/connect`;
+enable **Redirect on update** so changing repositories on an existing
+installation also returns to this callback. The callback returns to `/settings?github=connected`. The signed-in settings page
+loads installed repositories with `GET /api/integrations/github/repositories`.
+Each row shows the GitHub App's read-only access separately from the user's
+**Agent access** opt-in; update that setting with
+`PUT /api/integrations/github/repositories/{repositoryId}/access` and
+`{"enabled":true|false}`. All opt-ins start disabled. Mutating requests require
+the configured frontend `Origin` and existing `devpilotUserId` server session.
+
+For chat, the backend creates a short-lived installation token in memory,
+intersects enabled repository IDs with the current installation, and exposes
+read-only `list_repository_files` and `read_repository_file` tools to the model.
+Tokens are not saved. File contents are fetched only when a tool is called and
+sent to the configured Groq-compatible provider as context. Repository files are
+treated as untrusted input. The agent cannot write, commit, or push.
+
 Send a prediction to the Java API on port 8080:
 
 ```bash
