@@ -1,11 +1,11 @@
 # DevPilot AI
 
-An ML-powered developer intelligence platform for issue classification,
-similar issue detection, explainable predictions, and model experimentation.
+An ML-powered developer intelligence platform with issue classification,
+prediction history, and a read-only AI assistant for selected GitHub repositories.
 
 ## Project Structure
 
-- `frontend/` — React + TypeScript user interface
+- `frontend/` — React + JavaScript user interface
 - `backend/` — Java + Spring Boot application API
 - `ml/` — Python machine learning service and experiments
 - `datasets/` — Dataset setup and documentation
@@ -13,8 +13,11 @@ similar issue detection, explainable predictions, and model experimentation.
 
 ## Development Status
 
-The ML service supports issue classification with a title + body TF-IDF and
-balanced Logistic Regression model.
+The ML service classifies issue titles and descriptions with a TF-IDF and
+balanced Logistic Regression model. The React frontend calls the Spring Boot
+API, which stores signed-in users and prediction history in MySQL and forwards
+classification requests to the Python service. Docker configuration is not
+currently included in this repository.
 
 ## Run the ML Prediction API
 
@@ -60,11 +63,13 @@ The backend also provides a signed-in chat endpoint at `POST /api/chat`. It uses
 ```bash
 export GROQ_API_KEY=your-groq-api-key
 export GROQ_MODEL=openai/gpt-oss-20b
+# Required by the MySQL datasource; configure it for your local database.
+export DB_PASSWORD='your-local-database-password'
 cd backend
 mvn spring-boot:run
 ```
 
-The default model can be changed with `GROQ_MODEL`, and the API base URL with `GROQ_BASE_URL`. The free tier has rate limits; the chat request sends no repository content and exposes no tools that can change files or GitHub repositories.
+The default model can be changed with `GROQ_MODEL`, and the API base URL with `GROQ_BASE_URL`. The free tier has rate limits. General conversation (such as a greeting) is sent without repository context. For a repository question, the backend inspects only repositories the signed-in user explicitly enabled for agent access; it sends relevant search results or retrieved file contents to Groq. The tools are read-only and cannot change files or GitHub repositories.
 
 Send `{ "message": "Explain this code..." }` to `/api/chat` with the signed-in session cookie.
 
@@ -77,7 +82,9 @@ cd backend
 mvn spring-boot:run
 ```
 
-By default, the Java service calls `http://127.0.0.1:8000`. To point it to a
+By default, the Java service calls `http://127.0.0.1:8000`. Keep the Python API
+bound to loopback or behind a private service boundary; it does not implement
+user authentication. To point the Java service to a
 different Python service URL, set `DEVPILOT_ML_BASE_URL` before starting the
 backend. For example:
 
@@ -134,7 +141,9 @@ curl -X POST http://127.0.0.1:8080/api/predictions \
   -d '{"title":"Application crashes on startup","body":"The CLI exits with an unexpected exception."}'
 ```
 
-The response contains the predicted `label` and class `probabilities`. Run the
+The response contains the predicted `label` and class `probabilities`. Hibernate
+SQL logging is disabled by default; set `SPRING_JPA_SHOW_SQL=true` temporarily
+for local query debugging. Run the
 backend checks from `backend/` with `mvn test`; the mock HTTP test verifies the
 request and response between Java and Python without starting the ML service.
 

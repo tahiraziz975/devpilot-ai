@@ -53,6 +53,19 @@ class GitHubRepositoryServiceTest {
         verifyNoInteractions(github, access);
     }
 
+    @Test void readsAValidFileWithoutRelyingOnTheCappedDirectoryListing() {
+        var session = new GitHubRepositoryService.AgentSession("short-lived-token", Map.of(
+            "octo/app", new GitHubRepositoryService.AgentRepository(11L, "octo/app", "main")));
+        when(github.readRepositoryFile("short-lived-token", "octo/app", "src/controller/StudentController.java", "main"))
+            .thenReturn("class StudentController {}");
+
+        String content = service.readFile(session, "octo/app", "src/controller/StudentController.java");
+
+        assertEquals("class StudentController {}", content);
+        verify(github).readRepositoryFile("short-lived-token", "octo/app", "src/controller/StudentController.java", "main");
+        verify(github, never()).listRepositoryFiles(anyString(), anyString(), anyString(), anyString());
+    }
+
     private MockHttpServletRequest authenticated(String origin) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Origin", origin);

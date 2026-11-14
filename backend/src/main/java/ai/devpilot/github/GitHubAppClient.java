@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -168,6 +169,11 @@ public class GitHubAppClient {
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (Exception ex) {
+            if (ex instanceof RestClientResponseException responseException
+                    && responseException.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "File is not present in the selected repository");
+            }
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not read the requested file from GitHub");
         }
     }
