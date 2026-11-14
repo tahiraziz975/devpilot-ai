@@ -82,6 +82,26 @@ public class GitHubRepositoryService {
             .collect(Collectors.joining("\n"));
     }
 
+    public List<String> findFiles(AgentSession session, String fullName, String fileName) {
+        AgentRepository repo = authorized(session, fullName);
+        return github.findRepositoryFiles(session.token(), repo.fullName(), repo.defaultBranch(), fileName).stream()
+            .map(GitHubAppClient.TreeEntry::path).toList();
+    }
+
+    public String searchCode(AgentSession session, String fullName, String query) {
+        List<GitHubAppClient.CodeMatch> matches = findCodeMatches(session, fullName, query);
+        if (matches.isEmpty()) return "No code matches found. Try a related class, method, endpoint, or domain term.";
+        return matches.stream().map(match -> match.path() + (match.fragment().isBlank() ? "" : "\n" + match.fragment()))
+            .collect(Collectors.joining("\n---\n"));
+    }
+
+    public List<GitHubAppClient.CodeMatch> findCodeMatches(AgentSession session, String fullName, String query) {
+        AgentRepository repo = authorized(session, fullName);
+        if (query == null || query.isBlank() || query.length() > 120)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query must be between 1 and 120 characters");
+        return github.searchRepositoryCode(session.token(), repo.fullName(), query);
+    }
+
     public String readFile(AgentSession session, String fullName, String path) {
         AgentRepository repo = authorized(session, fullName);
         if (path == null || path.isBlank() || path.startsWith("/") || path.contains("..") || path.length() > 500)
