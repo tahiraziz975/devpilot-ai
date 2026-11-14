@@ -106,10 +106,6 @@ public class GitHubRepositoryService {
         AgentRepository repo = authorized(session, fullName);
         if (path == null || path.isBlank() || path.startsWith("/") || path.contains("..") || path.length() > 500)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid repository file path");
-        String directory = path.contains("/") ? path.substring(0, path.lastIndexOf('/')) : "";
-        boolean exists = github.listRepositoryFiles(session.token(), repo.fullName(), repo.defaultBranch(), directory)
-            .stream().anyMatch(file -> "blob".equals(file.type()) && file.path().equals(path));
-        if (!exists) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File is not present in the selected repository");
         String content = github.readRepositoryFile(session.token(), repo.fullName(), path, repo.defaultBranch());
         return content.length() > 16_000 ? content.substring(0, 16_000) + "\n[File truncated for the chat context.]" : content;
     }
