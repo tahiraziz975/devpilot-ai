@@ -4,6 +4,7 @@ import LoginPage from "./loginPage.jsx";
 import HistoryPage from './HistoryPage.jsx';
 import ChatSideDrawer from './chatSideDrawer.jsx';
 import GitHubIntegrationCard from './components/integrations/GitHubIntegrationCard.jsx';
+import HelpFeedback from './HelpFeedback.jsx';
 
 const initialTitle = 'Unable to log in to my account';
 const initialBody = 'When I click login with my username and password, it shows the same login page again.';
@@ -145,7 +146,7 @@ function App() {
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
 
-  const currentPage = path === '/assistant' ? 'AI Assistant' : path === '/history' ? 'History' : path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
+  const currentPage = path === '/help-feedback' ? 'Help & Feedback' : path === '/assistant' ? 'AI Assistant' : path === '/history' ? 'History' : path === '/profile' ? 'Profile' : path === '/settings' ? 'Settings' : path === '/signin' ? 'Sign in' : path === '/signup' ? 'Create account' : 'Classify issue';
   const authPage = path === '/signin' || path === '/signup' || (path === '/profile' && !authUser);
 
   async function classifyIssue(event) {
@@ -182,7 +183,7 @@ function App() {
   const scorePercent = Math.round(bestScore * 100);
 
   return (
-    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${path === '/assistant' ? 'is-assistant' : ''} ${settings.compactResults ? 'compact-results' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
+    <div className={`app-shell ${authPage ? 'is-auth' : ''} ${path === '/assistant' ? 'is-assistant' : ''} ${path === '/help-feedback' ? 'help-route' : ''} ${settings.compactResults ? 'compact-results' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
       <aside className="sidebar">
         <a className="brand" href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} aria-label="DevPilot AI home">
           <span className="brand-mark"><Command size={19} strokeWidth={2.6} /></span>
@@ -202,7 +203,7 @@ function App() {
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-tip"><Sparkles size={16} /><p><strong>Better triage starts here.</strong><br />Give your team a head start on every issue.</p></div>
-          <button className="help-link" type="button"><CircleHelp size={16} /> Help & feedback <ArrowUpRight size={14} /></button>
+          <button className={`help-link ${path === '/help-feedback' ? 'active' : ''}`} type="button" onClick={() => navigate('/help-feedback')}><CircleHelp size={16} /> Help & feedback <ArrowUpRight size={14} /></button>
           <div className="account-menu-wrap">
             {accountMenuOpen && <><button className="menu-dismiss" aria-label="Close account menu" onClick={() => setAccountMenuOpen(false)} /><div className="account-menu" role="menu" aria-label="Account menu">
               {authUser && <><div className="account-menu-heading"><span className="profile-avatar">{initials}</span><span><strong>{displayName}</strong><small>{displayEmail}</small></span></div>
@@ -226,8 +227,9 @@ function App() {
           <a href="/assistant" aria-current={path === '/assistant' ? 'page' : undefined} className={`mobile-tab ${path === '/assistant' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/assistant'); }}><Bot size={18} /><span>Assistant</span></a>
           <a href="/" aria-current={path === '/' ? 'page' : undefined} className={`mobile-tab ${path === '/' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/'); }}><WandSparkles size={18} /><span>Classify</span></a>
           <a href="/history" aria-current={path === '/history' ? 'page' : undefined} className={`mobile-tab ${path === '/history' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/history'); }}><Layers3 size={18} /><span>History</span></a>
+          <a href="/help-feedback" aria-current={path === '/help-feedback' ? 'page' : undefined} className={`mobile-tab ${path === '/help-feedback' ? 'active' : ''}`} onClick={(event) => { event.preventDefault(); navigate('/help-feedback'); }}><CircleHelp size={18} /><span>Help</span></a>
         </nav>}
-        {path === '/assistant' ? authUser ? <div className="assistant-page-wrap">
+        {path === '/help-feedback' ? <HelpFeedback /> : path === '/assistant' ? authUser ? <div className="assistant-page-wrap">
           <div className="assistant-page-heading"><div><div className="eyebrow"><span className="eyebrow-icon"><Bot size={14} /></span> DEVpilot AI</div><h1>AI Assistant</h1><p className="subtitle">Ask questions, explore ideas, and get help with your development work.</p></div></div>
           <ChatSideDrawer open fullScreen onClose={() => navigate('/')} />
         </div> : <div className="content-wrap assistant-access-content">
