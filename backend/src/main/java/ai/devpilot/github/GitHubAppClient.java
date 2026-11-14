@@ -1,6 +1,7 @@
 package ai.devpilot.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.Signature;
@@ -88,19 +89,68 @@ public class GitHubAppClient {
 
     public List<TreeEntry> listRepositoryFiles(String token, String fullName, String branch, String directory) {
         try {
-            String[] repository = fullName.split("/", 2);
-            if (repository.length != 2) throw new IllegalArgumentException("Invalid repository name");
-            Tree tree = client.get().uri(uri -> uri.pathSegment("repos", repository[0], repository[1], "git", "trees", branch)
-                    .queryParam("recursive", "1").build())
-                .headers(headers -> installationHeaders(headers, token)).retrieve().body(Tree.class);
-            if (tree == null || tree.entries() == null) return List.of();
+            List<TreeEntry> entries = repositoryTree(token, fullName, branch);
             String prefix = directory == null || directory.isBlank() ? "" : directory.replaceAll("/+$", "") + "/";
-            return tree.entries().stream().filter(entry -> ("blob".equals(entry.type()) || "tree".equals(entry.type())) && entry.path().startsWith(prefix))
+            return entries.stream().filter(entry -> ("blob".equals(entry.type()) || "tree".equals(entry.type())) && entry.path().startsWith(prefix))
                 .filter(entry -> entry.path().substring(prefix.length()).indexOf('/') < 0)
                 .limit(200).toList();
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not list files from GitHub");
         }
+    }
+
+    public List<TreeEntry> findRepositoryFiles(String token, String fullName, String branch, String fileName) {
+        try {
+            String normalizedName = fileName == null ? "" : fileName.trim();
+            if (normalizedName.isEmpty() || normalizedName.contains("/") || normalizedName.contains("\\")) return List.of();
+            return repositoryTree(token, fullName, branch).stream()
+                .filter(entry -> "blob".equals(entry.type()))
+                .filter(entry -> entry.path().substring(entry.path().lastIndexOf('/') + 1).equalsIgnoreCase(normalizedName))
+                .sorted(java.util.Comparator
+                    .comparing((TreeEntry entry) -> !entry.path().substring(entry.path().lastIndexOf('/') + 1).equals(normalizedName))
+                    .thenComparingInt(entry -> entry.path().length()))
+                .limit(10).toList();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not search repository files on GitHub");
+        }
+    }
+
+    public List<CodeMatch> searchRepositoryCode(String token, String fullName, String query) {
+        try {
+            String normalizedQuery = query == null ? "" : query.trim().replaceAll("\\s+", " ");
+            if (normalizedQuery.isEmpty() || normalizedQuery.length() > 120) return List.of();
+            JsonNode result = client.get().uri(uri -> uri.path("/search/code")
+                    .queryParam("q", normalizedQuery + " repo:" + fullName)
+                    .queryParam("per_page", 10).build())
+                .headers(headers -> {
+                    installationHeaders(headers, token);
+                    headers.setAccept(List.of(MediaType.valueOf("application/vnd.github.text-match+json")));
+                }).retrieve().body(JsonNode.class);
+            if (result == null || !result.path("items").isArray()) return List.of();
+            var matches = new java.util.ArrayList<CodeMatch>();
+            for (JsonNode item : result.path("items")) {
+                String path = item.path("path").asText("");
+                if (path.isBlank()) continue;
+                String fragment = "";
+                JsonNode textMatches = item.path("text_matches");
+                if (textMatches.isArray() && !textMatches.isEmpty())
+                    fragment = textMatches.get(0).path("fragment").asText("");
+                matches.add(new CodeMatch(path, fragment));
+            }
+            return List.copyOf(matches);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not search repository code on GitHub");
+        }
+    }
+
+    private List<TreeEntry> repositoryTree(String token, String fullName, String branch) {
+        String[] repository = fullName.split("/", 2);
+        if (repository.length != 2) throw new IllegalArgumentException("Invalid repository name");
+        String treeBranch = (branch == null || branch.isBlank()) ? "main" : branch;
+        Tree tree = client.get().uri(uri -> uri.pathSegment("repos", repository[0], repository[1], "git", "trees", treeBranch)
+                .queryParam("recursive", "1").build())
+            .headers(headers -> installationHeaders(headers, token)).retrieve().body(Tree.class);
+        return tree == null || tree.entries() == null ? List.of() : tree.entries();
     }
 
     public String readRepositoryFile(String token, String fullName, String path, String branch) {
@@ -136,6 +186,7 @@ public class GitHubAppClient {
             Map<String, String> permissions) {}
     public record Tree(@JsonProperty("tree") List<TreeEntry> entries) {}
     public record TreeEntry(String path, String type, long size) {}
+    public record CodeMatch(String path, String fragment) {}
     public record ContentFile(String content, String encoding) {}
 
     private String appJwt() throws Exception {

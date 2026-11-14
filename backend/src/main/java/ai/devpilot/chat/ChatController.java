@@ -28,6 +28,10 @@ public class ChatController {
         } catch (GroqConfigurationException exception) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Groq is not configured; set GROQ_API_KEY on the backend", exception);
+        } catch (GroqRateLimitException exception) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Groq's shared token limit is temporarily full. Wait about "
+                            + exception.retryAfterSeconds() + " seconds, then retry.", exception);
         } catch (GroqUpstreamException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Groq could not complete the request; check the backend log", exception);
