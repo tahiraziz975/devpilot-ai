@@ -76,6 +76,7 @@ export default function ChatSideDrawer({ open, onClose, issue, classification, f
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [retryAvailable, setRetryAvailable] = useState(false);
   const endRef = useRef(null);
   const composerRef = useRef(null);
 
@@ -86,6 +87,7 @@ export default function ChatSideDrawer({ open, onClose, issue, classification, f
       : 'Hi, I’m DevPilot AI. Ask me about code, debugging, architecture, or your development workflow. I can explain concepts and suggest next steps.' }]);
     setDraft('');
     setError('');
+    setRetryAvailable(false);
   }, [open, issue?.title, classification?.label, fullScreen]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, sending]);
@@ -97,19 +99,25 @@ export default function ChatSideDrawer({ open, onClose, issue, classification, f
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose, fullScreen]);
 
-  async function sendMessage(text = draft) {
+  async function sendMessage(text = draft, isRetry = false) {
     const content = text.trim();
     if (!content || sending) return;
-    const nextMessages = [...messages, { role: 'user', content }];
+    const nextMessages = isRetry ? messages : [...messages, { role: 'user', content }];
     setMessages(nextMessages);
     setDraft('');
     setError('');
     setSending(true);
     try {
-      const transcript = nextMessages.map((item) => `${item.role === 'assistant' ? 'DevPilot AI' : 'User'}: ${item.content}`).join('\n');
+      const recentMessages = nextMessages.slice(-3);
+      const transcript = recentMessages.map((item, index) => {
+        const isLatestUser = item.role === 'user' && index === recentMessages.length - 1;
+        const maxChars = isLatestUser ? 8_000 : 600;
+        const text = item.content.length > maxChars ? `[Earlier message shortened]\n${item.content.slice(-maxChars)}` : item.content;
+        return `${item.role === 'assistant' ? 'DevPilot AI' : 'User'}: ${text}`;
+      }).join('\n');
       const message = issue ? `Classified issue context:
-Title: ${issue.title}
-Description: ${issue.body}
+Title: ${issue.title.slice(0, 300)}
+Description: ${issue.body.slice(0, 1_500)}
 Predicted category: ${classification?.label || 'unknown'}
 
 Conversation so far:
@@ -124,12 +132,13 @@ ${transcript}`;
         body: JSON.stringify({ message }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.message || payload.error || `Chat request failed (${response.status}).`);
+      if (!response.ok) throw new Error(payload.message || payload.detail || payload.error || `Chat request failed (${response.status}).`);
       const reply = chatText(payload);
       if (!reply || typeof reply !== 'string') throw new Error('The chat service returned an unexpected response. Expected a reply field.');
       setMessages((current) => [...current, { role: 'assistant', content: reply }]);
     } catch (requestError) {
       setError(requestError.message || 'Could not reach the chat service. Sign in and make sure the Spring Boot backend is running.');
+      setRetryAvailable(/429|token limit|rate limit|temporarily full/i.test(requestError.message || ''));
     } finally {
       setSending(false);
     }
@@ -148,7 +157,7 @@ ${transcript}`;
         {messages.map((message, index) => <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}><span className="message-avatar">{message.role === 'assistant' ? <Sparkles size={14} /> : 'JD'}</span><div className="message-content"><span className="message-author">{message.role === 'assistant' ? 'DevPilot AI' : 'You'} <small>{message.role === 'assistant' ? 'AI AGENT' : 'JUST NOW'}</small></span><FormattedText content={message.content} /></div></article>)}
         {messages.length === 1 && <div className="chat-suggestions">{prompts.map((prompt) => <button key={prompt} type="button" onClick={() => sendMessage(prompt)} disabled={sending}>{prompt}<ChevronRight size={14} /></button>)}</div>}
         {sending && <div className="chat-thinking"><span className="message-avatar"><Sparkles size={14} /></span><span className="thinking-dots"><i /><i /><i /></span><span>DevPilot is thinking</span></div>}
-        {error && <div className="chat-error" role="alert">{error} <button type="button" onClick={() => setError('')}>Dismiss</button></div>}
+        {error && <div className="chat-error" role="alert">{error} {retryAvailable && messages.at(-1)?.role === 'user' && <button type="button" onClick={() => sendMessage(messages.at(-1).content, true)} disabled={sending}>Retry</button>} <button type="button" onClick={() => { setError(''); setRetryAvailable(false); }}>Dismiss</button></div>}
         <div ref={endRef} />
       </div>
       <form className="chat-composer" onSubmit={(event) => { event.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor={fullScreen ? 'assistant-chat-message' : 'chat-message'}>Message DevPilot AI</label><textarea ref={composerRef} id={fullScreen ? 'assistant-chat-message' : 'chat-message'} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 160)}px`; }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={fullScreen ? 'Ask DevPilot anything about your development work…' : 'Ask DevPilot about this issue…'} disabled={sending} /><div className="composer-footer"><span><Circle size={8} /> {fullScreen ? 'AI Assistant · Enter to send' : 'Issue context included · Enter to send'}</span><button type="submit" aria-label="Send message" disabled={sending || !draft.trim()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={15} />}</button></div></form>

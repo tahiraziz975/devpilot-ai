@@ -896,7 +896,7 @@ button { color: inherit; }
 .message-content { max-width: min(88%, 390px); }
 .message-author { display: flex; align-items: center; gap: 7px; margin: 2px 0 7px; color: #d4d2df; font-size: 9px; font-weight: 700; }
 .message-author small { color: #777686; font-size: 6px; letter-spacing: .6px; }
-.message-content p { margin: 0; padding: 11px 12px; border: 1px solid #34313e; border-radius: 3px 10px 10px; color: #c1c0ce; background: linear-gradient(145deg, #201f2a, #1a1a23); font-size: 10px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 6px 15px #0002; }
+.message-content p { margin: 0; padding: 11px 12px; border: 1px solid #34313e; border-radius: 3px 10px 10px; color: #c1c0ce; background: linear-gradient(145deg, #201f2a, #1a1a23); font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 6px 15px #0002; }
 .chat-message.user .message-content { display: flex; flex-direction: column; align-items: flex-end; }
 .chat-message.user .message-content p { border-color: #474060; border-radius: 10px 3px 10px 10px; color: #e2dcf4; background: linear-gradient(145deg, #332b47, #262331); }
 .chat-suggestions { display: grid; gap: 7px; margin: 4px 0 7px 37px; }
@@ -1542,7 +1542,7 @@ button { color: inherit; }
   .assistant-chat-panel .chat-composer { margin-right: 18px; margin-left: 18px; }
 }
 @media (max-width: 620px) {
-  .mobile-tab-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mobile-tab-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .mobile-tab { gap: 5px; font-size: 12px; }
   .is-assistant .mobile-tab-bar {
     position: sticky;
